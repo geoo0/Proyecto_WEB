@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import diagRoutes from './routes/diag.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/users.routes.js'; // <-- NUEVO
+import ducaRoutes from './routes/duca.routes.js'; // <-- NUEVO
 import { notFound, errorHandler } from './middlewares/error.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,7 @@ export function createApp() {
   app.use('/api', diagRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);  // ya no romperá
+  app.use('/api/duca', ducaRoutes);                 // <-- NUEVO
 
   app.use(notFound);
   app.use(errorHandler);

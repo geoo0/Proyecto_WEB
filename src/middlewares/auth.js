@@ -21,3 +21,10 @@ export function adminOnly(req, res, next) {
   }
   next();
 }
+
+export function transportistaOnly(req, res, next) {
+  if (req.user?.role !== 'TRANSPORTISTA') {
+    return res.status(403).json({ ok: false, error: 'Solo TRANSPORTISTA puede realizar esta acción' });
+  }
+  next();
+}
