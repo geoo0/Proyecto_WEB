@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 import diagRoutes from './routes/diag.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import usersRoutes from './routes/users.routes.js'; // <-- NUEVO
 import { notFound, errorHandler } from './middlewares/error.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,15 +21,12 @@ export function createApp() {
   app.use(express.json());
   app.use(morgan('dev'));
 
-  // Estáticos
   app.use(express.static(path.join(__dirname, 'public')));
 
-  // API
   app.use('/api', diagRoutes);
   app.use('/api/auth', authRoutes);
-  app.use('/api/users', usersRoutes);
+  app.use('/api/users', usersRoutes);  // ya no romperá
 
-  // 404 + errors
   app.use(notFound);
   app.use(errorHandler);
 
