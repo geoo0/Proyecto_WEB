@@ -31,7 +31,7 @@ export async function listUsers(req, res, next) {
 // POST /api/users
 // { full_name, email, role_code, is_active, password }
 // =====================
-export async function createUser(req, res, next) {
+export async function createUser(req, res) {
   const client = await pool.connect();
   try {
     const { full_name, email, role_code, is_active = true, password } = req.body ?? {};
@@ -50,13 +50,10 @@ export async function createUser(req, res, next) {
       throw Object.assign(new Error('Rol inválido'), { status: 400 });
     }
 
-    // Hash en Postgres con pgcrypto (bcrypt)
     const insertRes = await client.query(
-      `
-      INSERT INTO public.users (full_name, email, password_hash, role_id, is_active)
-      VALUES ($1, $2, crypt($3, gen_salt('bf', 10)), $4, $5)
-      RETURNING id, full_name, email, is_active
-      `,
+      `INSERT INTO public.users (full_name, email, password_hash, role_id, is_active)
+       VALUES ($1, $2, crypt($3, gen_salt('bf', 10)), $4, $5)
+       RETURNING id, full_name, email, is_active`,
       [full_name, email, password, roleRes.rows[0].id, !!is_active]
     );
 
@@ -69,10 +66,11 @@ export async function createUser(req, res, next) {
     );
 
     await client.query('COMMIT');
-    res.status(201).json({ ok: true, user: newUser });
+    return res.status(201).json({ ok: true, user: newUser });
   } catch (err) {
-    await pool.query(`ROLLBACK`);
-    // Correo duplicado (23505)
+    // Revierte la transacción de este client
+    try { await client.query('ROLLBACK'); } catch {}
+    // Manejo de email duplicado
     if (err?.code === '23505') {
       try {
         await pool.query(
@@ -84,9 +82,9 @@ export async function createUser(req, res, next) {
       return res.status(409).json({ ok: false, error: 'Correo ya registrado' });
     }
     const status = err.status || 500;
-    res.status(status).json({ ok: false, error: err.message || 'Error creando usuario' });
+    return res.status(status).json({ ok: false, error: err.message || 'Error creando usuario' });
   } finally {
-    pool.release && pool.release(); // no-op si no existe; client.release() ya se hizo arriba
+    client.release();
   }
 }
 
@@ -94,7 +92,7 @@ export async function createUser(req, res, next) {
 // PUT /api/users/:id
 // { full_name?, email?, role_code?, is_active?, password? }
 // =====================
-export async function updateUser(req, res, next) {
+export async function updateUser(req, res) {
   const client = await pool.connect();
   try {
     const { id } = req.params;
@@ -121,7 +119,6 @@ export async function updateUser(req, res, next) {
       roleId = roleRes.rows[0].id;
     }
 
-    // Construcción dinámica
     const sets = [];
     const vals = [];
     let idx = 1;
@@ -133,12 +130,14 @@ export async function updateUser(req, res, next) {
     if (password) { sets.push(`password_hash = crypt($${idx++}, gen_salt('bf', 10))`); vals.push(password); }
 
     if (sets.length === 0) {
-      return res.json({ ok: true, user: currentRes.rows[0] }); // nada que actualizar
+      await client.query('ROLLBACK'); // no hubo cambios
+      return res.json({ ok: true, user: currentRes.rows[0] });
     }
 
     vals.push(id);
     const updateRes = await client.query(
-      `UPDATE public.users SET ${sets.join(', ')} WHERE id = $${idx} RETURNING id, full_name, email, is_active`,
+      `UPDATE public.users SET ${sets.join(', ')} WHERE id = $${idx}
+       RETURNING id, full_name, email, is_active`,
       vals
     );
 
@@ -149,9 +148,9 @@ export async function updateUser(req, res, next) {
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, user: updateRes.rows[0] });
+    return res.json({ ok: true, user: updateRes.rows[0] });
   } catch (err) {
-    await pool.query(`ROLLBACK`);
+    try { await client.query('ROLLBACK'); } catch {}
     if (err?.code === '23505') {
       try {
         await pool.query(
@@ -163,14 +162,16 @@ export async function updateUser(req, res, next) {
       return res.status(409).json({ ok: false, error: 'Correo ya registrado' });
     }
     const status = err.status || 500;
-    res.status(status).json({ ok: false, error: err.message || 'Error actualizando usuario' });
+    return res.status(status).json({ ok: false, error: err.message || 'Error actualizando usuario' });
+  } finally {
+    client.release();
   }
 }
 
 // =====================
 // DELETE /api/users/:id  (borrado lógico: is_active = false)
 // =====================
-export async function deactivateUser(req, res, next) {
+export async function deactivateUser(req, res) {
   const client = await pool.connect();
   try {
     const { id } = req.params;
@@ -188,7 +189,8 @@ export async function deactivateUser(req, res, next) {
     }
 
     const up = await client.query(
-      `UPDATE public.users SET is_active = FALSE WHERE id = $1 RETURNING id, email, is_active`,
+      `UPDATE public.users SET is_active = FALSE WHERE id = $1
+       RETURNING id, email, is_active`,
       [id]
     );
 
@@ -199,10 +201,12 @@ export async function deactivateUser(req, res, next) {
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, user: up.rows[0] });
+    return res.json({ ok: true, user: up.rows[0] });
   } catch (err) {
-    await pool.query(`ROLLBACK`);
+    try { await client.query('ROLLBACK'); } catch {}
     const status = err.status || 500;
-    res.status(status).json({ ok: false, error: err.message || 'Error desactivando usuario' });
+    return res.status(status).json({ ok: false, error: err.message || 'Error desactivando usuario' });
+  } finally {
+    client.release();
   }
 }
