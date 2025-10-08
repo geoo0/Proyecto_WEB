@@ -1,0 +1,21 @@
+{
+  "name": "pg-render-demo",
+  "version": "1.0.0",
+  "description": "Mini proyecto para probar conexión a PostgreSQL en Render",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20.x"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "pg": "^8.12.0"
+  }
+}

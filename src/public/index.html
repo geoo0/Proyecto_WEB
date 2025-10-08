@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Demo PG Render</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    body { margin: 0; padding: 2rem; background: #f6f7f9; }
+    .card { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+    button { padding: 10px 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+    button:active { transform: translateY(1px); }
+    pre { background: #0b1020; color: #d6deff; padding: 16px; border-radius: 12px; overflow-x: auto; }
+    .muted { color: #666; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Demo conexión PostgreSQL (Render)</h1>
+    <p class="muted">Haz clic para consultar <code>/api/_diag/db</code> y ver la respuesta.</p>
+    <button id="btn">Probar conexión</button>
+    <p id="status" class="muted"></p>
+    <pre id="out">{}</pre>
+  </div>
+
+  <script>
+    const btn = document.getElementById('btn');
+    const out = document.getElementById('out');
+    const status = document.getElementById('status');
+
+    btn.addEventListener('click', async () => {
+      status.textContent = 'Consultando...';
+      out.textContent = '{}';
+      try {
+        const res = await fetch('/api/_diag/db');
+        const data = await res.json();
+        status.textContent = data.ok ? 'OK ✅' : 'Con error ⚠️';
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        status.textContent = 'Falló la solicitud';
+        out.textContent = String(e);
+      }
+    });
+  </script>
+</body>
+</html>
