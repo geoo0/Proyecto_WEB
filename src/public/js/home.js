@@ -3,9 +3,12 @@ const title = document.getElementById('title');
 const logoutBtn = document.getElementById('logout');
 
 function goLogin() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  location.href = '/login.html';
+  try {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  } finally {
+    location.replace('/index.html'); // login vive en index.html
+  }
 }
 
 async function loadProfile() {
@@ -14,15 +17,15 @@ async function loadProfile() {
 
   try {
     const res = await fetch('/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store'
     });
     const data = await res.json();
 
-    if (!res.ok || !data.ok) {
-      return goLogin();
-    }
+    if (!res.ok || !data.ok) return goLogin();
 
-    title.textContent = `Bienvenido, ${data.user?.id ? (JSON.parse(localStorage.getItem('user'))?.name || 'Usuario') : 'Usuario'}`;
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    title.textContent = `Bienvenido, ${u.name || 'Usuario'}`;
     out.textContent = JSON.stringify(data, null, 2);
   } catch {
     goLogin();
