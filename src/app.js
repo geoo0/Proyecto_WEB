@@ -27,7 +27,7 @@ export function createApp() {
   app.use('/api', diagRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);  // ya no romperá
-  app.use('/api/duca', ducaRoutes);                 // <-- NUEVO
+  app.use('/api/duca', ducaRoutes);    // <-- NUEVO
 
   app.use(notFound);
   app.use(errorHandler);
