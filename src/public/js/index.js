@@ -24,7 +24,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      location.replace('/usuarios.html');
+
+      const role = data.user?.role;
+      if (role === 'ADMIN') {
+        location.replace('/usuarios.html');
+      } else if (role === 'TRANSPORTISTA') {
+        location.replace('/duca.html');
+      } else {
+        // fallback: elige la landing que prefieras para otros roles
+        location.replace('/usuarios.html');
+      }
     } catch (err) {
       msg.textContent = 'No se pudo conectar. Intenta de nuevo.';
     }
