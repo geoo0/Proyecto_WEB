@@ -26,6 +26,7 @@ export function createApp() {
   // API
   app.use('/api', diagRoutes);
   app.use('/api/auth', authRoutes);
+  app.use('/api/users', usersRoutes);
 
   // 404 + errors
   app.use(notFound);
