@@ -22,8 +22,10 @@ export async function recepcionDUCA(req, res) {
       // Bitácora fallo validación
       try {
         await pool.query(
-          `INSERT INTO public.declaration_log (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
-           VALUES ($1, $2, $3, 'DECLARATION_CREATE', 'FALLO', $4, $5)`,
+          `INSERT INTO public.declaration_log
+             (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
+           VALUES
+             ($1, NULLIF($2,'')::inet, $3, 'DECLARATION_CREATE', 'FALLO', $4, $5)`,
           [userId, ip, ua, req.body?.duca?.numeroDocumento ?? null, `Validación: ${errors.join('; ')}`]
         );
       } catch {}
@@ -41,8 +43,10 @@ export async function recepcionDUCA(req, res) {
       await client.query('ROLLBACK');
       try {
         await pool.query(
-          `INSERT INTO public.declaration_log (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
-           VALUES ($1, $2, $3, 'DECLARATION_CREATE', 'FALLO', $4, 'DUCA ya registrada')`,
+          `INSERT INTO public.declaration_log
+             (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
+           VALUES
+             ($1, NULLIF($2,'')::inet, $3, 'DECLARATION_CREATE', 'FALLO', $4, 'DUCA ya registrada')`,
           [userId, ip, ua, data.numero_documento]
         );
       } catch {}
@@ -62,8 +66,9 @@ export async function recepcionDUCA(req, res) {
         estado_documento, firma_electronica,
         created_by_user_id
       )
-      VALUES ($1,$2,$3,$4,  $5,$6,$7,$8,$9,  $10,$11,$12,$13,$14,  $15,$16,$17,$18,$19,
-              $20,$21,$22,$23,  $24,$25,$26,$27,$28,  $29,$30,  $31,$32,  $33)
+      VALUES ($1,$2,$3,$4,  $5,$6,$7,$8,$9,  $10,$11,$12,$13,$14,
+              $15,$16,$17,$18,$19,  $20,$21,$22,$23,
+              $24,$25,$26,$27,$28,  $29,$30,  $31,$32,  $33)
       RETURNING id`,
       [
         data.numero_documento, data.fecha_emision, data.pais_emisor, data.tipo_operacion,
@@ -89,7 +94,8 @@ export async function recepcionDUCA(req, res) {
       values.push(ducaId, it.linea, it.descripcion, it.cantidad, it.unidadMedida, it.valorUnitario, it.paisOrigen);
     }
     await client.query(
-      `INSERT INTO public.duca_items (duca_id, linea, descripcion, cantidad, unidad_medida, valor_unitario, pais_origen)
+      `INSERT INTO public.duca_items
+         (duca_id, linea, descripcion, cantidad, unidad_medida, valor_unitario, pais_origen)
        VALUES ${params.join(', ')}`,
       values
     );
@@ -99,8 +105,10 @@ export async function recepcionDUCA(req, res) {
     // 5) Bitácora éxito
     try {
       await pool.query(
-        `INSERT INTO public.declaration_log (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
-         VALUES ($1, $2, $3, 'DECLARATION_CREATE', 'EXITO', $4, 'Declaración guardada con estado PENDIENTE')`,
+        `INSERT INTO public.declaration_log
+           (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
+         VALUES
+           ($1, NULLIF($2,'')::inet, $3, 'DECLARATION_CREATE', 'EXITO', $4, 'Declaración guardada con estado PENDIENTE')`,
         [userId, ip, ua, data.numero_documento]
       );
     } catch {}
@@ -113,11 +121,16 @@ export async function recepcionDUCA(req, res) {
       id: ducaId
     });
   } catch (err) {
+    // Log en servidor para depurar (puedes quitarlo luego)
+    console.error('DUCA recepcion error:', err);
+
     try { await client.query('ROLLBACK'); } catch {}
     try {
       await pool.query(
-        `INSERT INTO public.declaration_log (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
-         VALUES ($1, $2, $3, 'DECLARATION_CREATE', 'FALLO', $4, $5)`,
+        `INSERT INTO public.declaration_log
+           (user_id, ip_address, user_agent, operation, result, numero_declaracion, notes)
+         VALUES
+           ($1, NULLIF($2,'')::inet, $3, 'DECLARATION_CREATE', 'FALLO', $4, $5)`,
         [userId, ip, ua, req.body?.duca?.numeroDocumento ?? null, err.message || 'Error 500']
       );
     } catch {}
