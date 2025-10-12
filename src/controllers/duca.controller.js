@@ -19,7 +19,6 @@ export async function recepcionDUCA(req, res) {
     // 1) Validar payload
     const { ok, errors, data } = validateDUCA(req.body);
     if (!ok) {
-      // Bitácora fallo validación
       try {
         await pool.query(
           `INSERT INTO public.declaration_log
@@ -68,7 +67,7 @@ export async function recepcionDUCA(req, res) {
       )
       VALUES ($1,$2,$3,$4,  $5,$6,$7,$8,$9,  $10,$11,$12,$13,$14,
               $15,$16,$17,$18,$19,  $20,$21,$22,$23,
-              $24,$25,$26,$27,$28,  $29,$30,  $31,$32,  $33)
+              $24,$25,$26,$27,$28,$29,  $30,$31,  $32,$33,  $34)
       RETURNING id`,
       [
         data.numero_documento, data.fecha_emision, data.pais_emisor, data.tipo_operacion,
@@ -121,9 +120,7 @@ export async function recepcionDUCA(req, res) {
       id: ducaId
     });
   } catch (err) {
-    // Log en servidor para depurar (puedes quitarlo luego)
     console.error('DUCA recepcion error:', err);
-
     try { await client.query('ROLLBACK'); } catch {}
     try {
       await pool.query(
